@@ -1,0 +1,617 @@
+<title>Xiaozhi Robot Face</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+
+<style>
+:root{
+  --ground:#060A10;      /* the exact background the firmware paints */
+  --panel:#0C131B;
+  --panel-2:#111A24;
+  --rule:#1E2C39;
+  --rule-soft:#16212C;
+  --cyan:#22D3EE;        /* the exact face colour */
+  --shine:#E6FBFF;
+  --ink:#DCE7EF;
+  --ink-dim:#8FA3B0;     /* the exact status-bar colour */
+  --ink-faint:#5D7381;
+  --amber:#D9A05B;
+  --step:clamp(.9rem,.35vw + .8rem,1rem);
+}
+
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{
+  margin:0;
+  background:var(--ground);
+  color:var(--ink);
+  font-family:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  font-size:var(--step);
+  line-height:1.6;
+}
+
+.wrap{max-width:1080px;margin:0 auto;padding:0 24px 96px}
+
+/* ---------- masthead ---------- */
+.mast{
+  display:flex;flex-wrap:wrap;align-items:flex-end;gap:20px;
+  justify-content:space-between;
+  padding:56px 0 28px;border-bottom:1px solid var(--rule);
+}
+h1{
+  font-family:"Chakra Petch",system-ui,sans-serif;
+  font-weight:700;font-size:clamp(2rem,4.6vw,3.1rem);
+  letter-spacing:-.015em;line-height:1.02;margin:0;
+  text-wrap:balance;color:var(--ink);
+}
+h1 em{font-style:normal;color:var(--cyan)}
+.mast p{margin:.7em 0 0;max-width:46ch;color:var(--ink-dim)}
+.idchip{
+  font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:.72rem;
+  color:var(--ink-faint);text-align:right;line-height:1.9;white-space:nowrap;
+}
+.idchip b{color:var(--ink-dim);font-weight:500}
+
+/* ---------- section furniture ---------- */
+section{padding-top:56px}
+.eyebrow{
+  font-family:"IBM Plex Mono",ui-monospace,monospace;
+  font-size:.7rem;letter-spacing:.16em;text-transform:uppercase;
+  color:var(--ink-faint);margin:0 0 10px;
+}
+h2{
+  font-family:"Chakra Petch",system-ui,sans-serif;
+  font-weight:600;font-size:1.5rem;letter-spacing:-.01em;
+  margin:0 0 8px;color:var(--ink);text-wrap:balance;
+}
+.lede{margin:0 0 26px;color:var(--ink-dim);max-width:64ch}
+
+/* ---------- hero: the device ---------- */
+.bench{display:grid;grid-template-columns:minmax(0,1fr) 250px;gap:28px;align-items:start}
+@media(max-width:820px){.bench{grid-template-columns:1fr}}
+
+.bezel{
+  background:linear-gradient(#151F29,#0B1218);
+  border:1px solid var(--rule);border-radius:14px;padding:14px;
+  box-shadow:0 24px 60px -30px #000, inset 0 1px 0 #263644;
+}
+.screen{
+  position:relative;width:100%;aspect-ratio:320/240;
+  background:var(--ground);border-radius:5px;overflow:hidden;
+  border:1px solid #060A10;
+  box-shadow:0 0 0 1px #22303D, 0 0 46px -12px rgba(34,211,238,.32);
+}
+.screen canvas{display:block;width:100%;height:100%}
+.bezel figcaption{
+  display:flex;justify-content:space-between;gap:12px;
+  font-family:"IBM Plex Mono",ui-monospace,monospace;
+  font-size:.68rem;color:var(--ink-faint);padding-top:11px;
+}
+
+.controls{display:flex;flex-direction:column;gap:22px}
+.ctl h3{
+  font-family:"IBM Plex Mono",ui-monospace,monospace;
+  font-size:.68rem;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--ink-faint);margin:0 0 9px;font-weight:500;
+}
+.stack{display:flex;flex-direction:column;gap:5px}
+button{
+  font:inherit;font-size:.83rem;text-align:left;cursor:pointer;
+  background:var(--panel);color:var(--ink-dim);
+  border:1px solid var(--rule-soft);border-radius:7px;
+  padding:8px 11px;transition:background .14s,color .14s,border-color .14s;
+}
+button:hover{background:var(--panel-2);color:var(--ink)}
+button[aria-pressed="true"]{
+  background:rgba(34,211,238,.11);border-color:rgba(34,211,238,.5);color:var(--cyan);
+}
+button:focus-visible{outline:2px solid var(--cyan);outline-offset:2px}
+select{
+  font:inherit;font-size:.83rem;width:100%;
+  background:var(--panel);color:var(--ink);
+  border:1px solid var(--rule-soft);border-radius:7px;padding:8px 10px;
+}
+select:focus-visible{outline:2px solid var(--cyan);outline-offset:2px}
+.hint{font-size:.76rem;color:var(--ink-faint);margin:9px 0 0;line-height:1.5}
+
+/* ---------- spec strip ---------- */
+.specs{
+  display:grid;grid-template-columns:repeat(auto-fit,minmax(178px,1fr));
+  gap:1px;background:var(--rule-soft);
+  border:1px solid var(--rule-soft);border-radius:10px;overflow:hidden;
+}
+.spec{background:var(--panel);padding:15px 17px}
+.spec dt{
+  font-family:"IBM Plex Mono",ui-monospace,monospace;
+  font-size:.66rem;letter-spacing:.13em;text-transform:uppercase;
+  color:var(--ink-faint);margin-bottom:5px;
+}
+.spec dd{
+  margin:0;font-family:"Chakra Petch",system-ui,sans-serif;
+  font-size:1.02rem;font-weight:600;color:var(--ink);
+  font-variant-numeric:tabular-nums;
+}
+.spec dd span{display:block;font-family:"IBM Plex Mono",monospace;font-size:.7rem;font-weight:400;color:var(--ink-faint);margin-top:3px}
+
+/* ---------- expression atlas ---------- */
+.atlas{
+  display:grid;grid-template-columns:repeat(auto-fill,minmax(126px,1fr));gap:12px;
+}
+.pose{
+  background:var(--panel);border:1px solid var(--rule-soft);
+  border-radius:9px;padding:9px;text-align:center;
+}
+.pose canvas{display:block;width:100%;aspect-ratio:320/240;border-radius:4px;background:var(--ground)}
+.pose span{
+  display:block;font-family:"IBM Plex Mono",ui-monospace,monospace;
+  font-size:.68rem;color:var(--ink-dim);margin-top:8px;
+}
+
+/* ---------- behaviour table ---------- */
+.tablewrap{overflow-x:auto;border:1px solid var(--rule-soft);border-radius:10px}
+table{border-collapse:collapse;width:100%;min-width:600px;font-size:.87rem}
+th,td{text-align:left;padding:11px 15px;border-bottom:1px solid var(--rule-soft);vertical-align:top}
+thead th{
+  font-family:"IBM Plex Mono",ui-monospace,monospace;
+  font-size:.66rem;letter-spacing:.13em;text-transform:uppercase;
+  color:var(--ink-faint);font-weight:500;background:var(--panel-2);
+}
+tbody tr:last-child td{border-bottom:0}
+tbody tr{background:var(--panel)}
+td:first-child{color:var(--cyan);font-family:"IBM Plex Mono",monospace;font-size:.78rem;white-space:nowrap}
+td em{font-style:normal;color:var(--ink)}
+
+/* ---------- file list ---------- */
+.files{list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:1px;
+  background:var(--rule-soft);border:1px solid var(--rule-soft);border-radius:10px;overflow:hidden}
+.files li{background:var(--panel);padding:13px 16px;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 16px;align-items:baseline}
+.files code{font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:.78rem;color:var(--ink);word-break:break-all}
+.files .tag{
+  font-family:"IBM Plex Mono",monospace;font-size:.63rem;letter-spacing:.1em;text-transform:uppercase;
+  padding:2px 7px;border-radius:4px;white-space:nowrap;
+}
+.tag.new{background:rgba(34,211,238,.13);color:var(--cyan)}
+.tag.mod{background:rgba(217,160,91,.14);color:var(--amber)}
+.tag.fix{background:rgba(217,160,91,.2);color:var(--amber)}
+.files p{grid-column:1/-1;margin:2px 0 0;font-size:.82rem;color:var(--ink-faint)}
+
+.note{
+  border-left:2px solid var(--amber);background:rgba(217,160,91,.05);
+  padding:14px 18px;border-radius:0 8px 8px 0;font-size:.88rem;color:var(--ink-dim);
+}
+.note b{color:var(--ink);font-weight:600}
+.note code{font-family:"IBM Plex Mono",monospace;font-size:.82em;color:var(--amber)}
+
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+
+<div class="wrap">
+
+<header class="mast">
+  <div>
+    <h1>A face that <em>answers back</em></h1>
+    <p>A procedurally drawn robot face for the xiaozhi ESP32-S3, replacing the prebaked GIF emoji with eyes and a mouth that track device state and live speech amplitude.</p>
+  </div>
+  <div class="idchip">
+    <b>lichuang-dev</b> &middot; ESP32-S3<br>
+    ST7789 &middot; 320&times;240<br>
+    14:c1:9f:35:fa:38
+  </div>
+</header>
+
+<section>
+  <p class="eyebrow">Live preview</p>
+  <h2>Drive it before you flash it</h2>
+  <p class="lede">This is the firmware's own geometry running in the browser &mdash; the same expression table, the same easing, the same blink schedule and mouth logic. Pick a device state and an emotion to see what the panel will actually do.</p>
+
+  <div class="bench">
+    <figure class="bezel" style="margin:0">
+      <div class="screen"><canvas id="stage" width="640" height="480"></canvas></div>
+      <figcaption><span>ST7789 &middot; 320&times;240 &middot; landscape</span><span id="fps">&mdash;</span></figcaption>
+    </figure>
+
+    <div class="controls">
+      <div class="ctl">
+        <h3>Device state</h3>
+        <div class="stack" id="states"></div>
+      </div>
+      <div class="ctl">
+        <h3>Emotion from server</h3>
+        <select id="emotion"></select>
+        <p class="hint">State layers on top of emotion. Speaking overrides the mouth; connecting overrides nearly everything.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <p class="eyebrow">What's on your desk</p>
+  <h2>Read off the device, not assumed</h2>
+  <p class="lede">Every value below came from the chip itself &mdash; eFuse, the partition table, and strings recovered from the running image.</p>
+  <dl class="specs">
+    <div class="spec"><dt>Chip</dt><dd>ESP32-S3<span>rev v0.2 &middot; dual core 240MHz</span></dd></div>
+    <div class="spec"><dt>Memory</dt><dd>16MB / 8MB<span>flash &middot; embedded PSRAM</span></dd></div>
+    <div class="spec"><dt>Panel</dt><dd>ST7789<span>320&times;240 landscape &middot; SPI mode 0</span></dd></div>
+    <div class="spec"><dt>Audio</dt><dd>ES8311<span>+ ES7210 mics &middot; 24kHz &middot; AEC</span></dd></div>
+    <div class="spec"><dt>Was running</dt><dd>v1.8.5<span>IDF v5.5 &middot; built 15 Aug 2025</span></dd></div>
+    <div class="spec"><dt>Now building</dt><dd>v2.4.2<span>IDF v6.0.2 &middot; en-US</span></dd></div>
+  </dl>
+</section>
+
+<section>
+  <p class="eyebrow">Expression atlas</p>
+  <h2>All twenty-one emotions</h2>
+  <p class="lede">The server sends one of these names; each maps to a row of eye, brow and mouth geometry that the face eases toward rather than cutting to. Shown here at rest, without the state layer.</p>
+  <div class="atlas" id="atlas"></div>
+</section>
+
+<section>
+  <p class="eyebrow">Behaviour</p>
+  <h2>How the face reacts</h2>
+  <p class="lede">Device state modulates whatever emotion is currently set, so the face stays expressive while still telling you what the hardware is doing.</p>
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th>State</th><th>What you see</th><th>Driven by</th></tr></thead>
+      <tbody>
+        <tr><td>Idle</td><td><em>Slow drift and breath</em>, blinking every 2&ndash;6 s so it never looks frozen.</td><td>Free-running clock</td></tr>
+        <tr><td>Listening</td><td><em>Eyes widen 16%, brows lift</em>, mouth closes and the gaze rises slightly.</td><td>State change</td></tr>
+        <tr><td>Speaking</td><td><em>Mouth opens in step with the voice</em> &mdash; fast attack, slow release. Measured on hardware: <b>r&nbsp;=&nbsp;0.982</b> against the speech envelope, travelling 3.3&ndash;42.7&nbsp;px across 66 distinct apertures.</td><td>RMS of PCM at the speaker</td></tr>
+        <tr><td>Thinking</td><td><em>Eyes flick between two upper corners</em>, the way people search memory.</td><td>Emotion + clock</td></tr>
+        <tr><td>Connecting</td><td><em>Narrowed eyes sweeping side to side</em>, brows hidden, mouth flat.</td><td>State change</td></tr>
+        <tr><td>Fatal error</td><td><em>Hard squint, steep brows, deep frown.</em></td><td>State change</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="note" style="margin-top:20px">
+    <b>Verified on the device, not just in code.</b> The board was woken by speaking &ldquo;Jarvis&rdquo; aloud, held a real exchange with the server, and the speech envelope and mouth aperture were traced together at 30&nbsp;fps throughout. Over 3.1&nbsp;s of speech the mouth took 66 distinct values and correlated with the audio at <b>r&nbsp;=&nbsp;0.982</b>; the trace shows it snapping 6&rarr;37&nbsp;px in two frames on a syllable onset and easing back over five &mdash; the intended fast-attack, slow-release envelope.
+  </div>
+</section>
+
+<section>
+  <p class="eyebrow">Changes</p>
+  <h2>Six files</h2>
+  <ul class="files">
+    <li><code>main/display/robot_face_display.cc / .h</code><span class="tag new">new</span>
+      <p>Expression table, frame loop, easing, blink scheduler and the LVGL geometry for eyes, brows and mouth. Also carries two bring-up aids behind a compile flag: a framebuffer dump and a direct-to-panel identify blink.</p></li>
+    <li><code>main/audio/audio_service.cc / .h</code><span class="tag mod">modified</span>
+      <p>Samples the RMS of each PCM buffer as it is handed to the codec and publishes it as <code>GetPlaybackLevel()</code>, so the mouth follows real speech instead of a timer.</p></li>
+    <li><code>main/boards/lckfb/szpi-esp32s3/lichuang_dev_board.cc</code><span class="tag fix">two fixes</span>
+      <p><b>SPI mode 2 &rarr; 0</b>, without which this panel displays nothing at all. Plus a guard so a missing FT5x06 touch controller no longer panics at boot. Also builds a <code>RobotFaceDisplay</code> in place of the stock display.</p></li>
+    <li><code>main/CMakeLists.txt</code><span class="tag mod">modified</span>
+      <p>Adds the new source to the build.</p></li>
+  </ul>
+</section>
+
+<section>
+  <p class="eyebrow">The bug that hid the face</p>
+  <h2>A panel that acknowledged everything and displayed nothing</h2>
+  <p class="lede">The first build flashed, booted, connected and rendered a perfect face &mdash; onto a screen that never changed. Everything reported success:</p>
+
+  <div class="tablewrap" style="margin-bottom:20px">
+    <table>
+      <thead><tr><th>Signal</th><th>Said</th><th>Meant</th></tr></thead>
+      <tbody>
+        <tr><td>lv_snapshot_take</td><td><em>Correct face</em></td><td>Only that the widget tree was right &mdash; it re-renders, it never reads the panel</td></tr>
+        <tr><td>LVGL flush</td><td><em>flush_start = flush_finish = 1481</em></td><td>LVGL handed the pixels off and they were accepted</td></tr>
+        <tr><td>esp_lcd_panel_draw_bitmap</td><td><em>ESP_OK</em></td><td>Only that the SPI transaction was clocked out</td></tr>
+        <tr><td>I&sup2;C scan</td><td><em>0x18, 0x19, 0x41</em></td><td>Codec, PCA9557 (LCD reset) and mic ADC all alive</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="note">
+    <b>The board profile sets <code>io_config.spi_mode = 2</code>; this panel only latches in mode&nbsp;0.</b> Wrong clock polarity means the ST7789 never registers a valid byte, while the ESP32 clocks bits out perfectly happily and every layer above reports success. Because the panel keeps its GRAM across a soft reset, the screen went on showing the <em>previous</em> firmware's Chinese UI &mdash; which read as "the flash didn't take". The pin-identical <code>zhengchen/cam</code> profile for this same hardware uses mode&nbsp;0. One line.
+  </div>
+
+  <p class="lede" style="margin-top:26px">What settled it was writing straight to the panel, underneath LVGL, and blinking the whole screen red and white &mdash; the one test whose result could not be faked by a layer reporting success.</p>
+</section>
+
+<section>
+  <p class="eyebrow">Also changed</p>
+  <h2>Wake word, and where the voice lives</h2>
+  <div class="tablewrap" style="margin-bottom:20px">
+    <table>
+      <thead><tr><th>Request</th><th>Status</th></tr></thead>
+      <tbody>
+        <tr><td>Wake word</td><td><em>Done.</em> <code>wn9_jarvis_tts</code> &mdash; say <b>"Jarvis"</b>. Confirmed in the AFE pipeline: <code>[input] &rarr; |AEC| &rarr; |VAD| &rarr; |WakeNet(wn9_jarvis_tts)|</code></td></tr>
+        <tr><td>Voice</td><td><em>Not a firmware setting.</em> The device has no TTS engine; it only plays Opus streamed from the server, so accent, pitch and rate belong to the agent in the xiaozhi console.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="note">
+    <b>Measured from your sample</b> (3.63&nbsp;s, 74% speech): median F0 <b>139&nbsp;Hz</b>, p10&ndash;p90 spread <b>10.9 semitones</b> (animated, not flat), rate <b>6.0 syllables/sec</b> &mdash; brisk against the 4&ndash;5 conversational norm. For British English male, ask for <code>en-GB-RyanNeural</code> or <code>en-GB-ThomasNeural</code> at <b>rate +15&ndash;20%</b>, pitch default: Ryan sits close to 139&nbsp;Hz naturally, so the rate is the real change.
+  </div>
+
+  <p class="lede" style="margin-top:26px">Backup of the original firmware, should you want it back:</p>
+  <div class="note">
+    <b>Restore:</b> <code>~/Documents/xiaozhi-backup/xiaozhi-full-16MB-20260819.bin</code><br>
+    Written at offset 0, that returns the device byte-for-byte to the v1.8.5 firmware it shipped with.
+  </div>
+</section>
+
+</div>
+
+<script>
+(() => {
+"use strict";
+
+/* Geometry constants, matching robot_face_display.cc for a 320x240 panel. */
+const W = 320, H = 240;
+const TOP_BAR = 36;
+const AVAIL = H - TOP_BAR;
+const CY = TOP_BAR + Math.floor(AVAIL / 2);
+const BIAS = 18;                       // (58 above eyes - 22 below mouth) / 2
+const GAP = Math.round(AVAIL * 0.32);  // eye centre -> mouth centre
+const FACE_CX = W / 2;
+const EYES_CY = CY + BIAS - Math.floor(GAP / 2);
+const MOUTH_CY = CY + BIAS + Math.floor(GAP / 2);
+const EYE_GAP = Math.round(W * 0.21);
+const BROW_LEN = Math.round(W * 0.19);
+const ARC_R = Math.round(W * 0.16);
+const CYAN = "#22D3EE", SHINE = "#E6FBFF", GROUND = "#060A10", DIM = "#8FA3B0";
+const EASE = 0.28, MOUTH_EASE = 0.55, BLINK_MS = 150;
+
+/* keys: eyeHL eyeHR eyeW rad gazeX gazeY browL browR browDy browOpa mouthW mouthOpen curve */
+const K = ["ehl","ehr","ew","rad","gx","gy","bl","br","bdy","bo","mw","mo","curve"];
+const RAW = {
+  neutral:     [76,76,66,22,  0, 0,   0,  0,  0,  0, 84, 0, 0.00],
+  happy:       [58,58,70,26,  0, 0,  -8, -8, -4,140, 88, 6, 1.00],
+  laughing:    [34,34,74,17,  0,-2, -10,-10, -6,150, 92,30, 1.00],
+  funny:       [66,50,72,24,  6, 0, -12, -2, -5,160, 88,14, 1.00],
+  sad:         [56,56,62,20,  0, 6, -14,-14,  6,200, 78, 0,-1.00],
+  angry:       [42,42,70,14,  0, 0,  24, 24,  4,255, 82, 4,-1.00],
+  crying:      [50,50,60,20,  0, 8, -12,-12,  5,200, 74,12,-1.00],
+  loving:      [70,70,74,30,  0, 0,  -6, -6, -4,120, 88, 4, 1.00],
+  embarrassed: [38,38,62,16, -8, 4,  -4, -4,  2,140, 76, 4, 0.35],
+  surprised:   [92,92,80,34,  0,-2, -18,-18,-12,220, 70,26, 0.00],
+  shocked:     [100,100,86,38,0,-4, -22,-22,-16,255, 66,36, 0.00],
+  thinking:    [60,44,64,20, 14,-8,   8, -6, -2,180, 72, 0, 0.00],
+  winking:     [8,76,68,22,   0, 0, -14, -6, -4,150, 86, 6, 1.00],
+  cool:        [54,54,72,18,  0, 0,  -4, -4, -2,120, 86, 0, 0.60],
+  relaxed:     [48,48,68,22,  0, 2,  -2, -2,  0,100, 84, 0, 0.70],
+  delicious:   [42,42,68,20,  0, 0,  -8, -8, -4,140, 84,18, 1.00],
+  kissy:       [50,50,64,22,  0, 0,  -6, -6, -3,120, 40,18, 0.00],
+  confident:   [56,56,70,20,  0, 0, -14,-14, -6,180, 86, 0, 0.80],
+  sleepy:      [18,18,66, 9,  0, 6,   4,  4,  6,120, 70, 8, 0.00],
+  silly:       [66,66,70,24,-10, 4, -14,-14, -6,160, 88,20, 1.00],
+  confused:    [64,46,66,22, 10, 0,  10, -8, -2,180, 78, 6,-0.40],
+};
+const P = {};
+for (const [name, vals] of Object.entries(RAW)) {
+  P[name] = Object.fromEntries(K.map((k, i) => [k, vals[i]]));
+}
+const EMOTIONS = Object.keys(P);
+
+const STATES = [
+  ["idle",       "Idle"],
+  ["listening",  "Listening"],
+  ["speaking",   "Speaking"],
+  ["connecting", "Connecting"],
+  ["error",      "Fatal error"],
+];
+
+const clone = o => Object.assign({}, o);
+const approach = (c, t, k) => c + (t - c) * k;
+
+/* ---- the renderer, mirroring RenderFace() ---- */
+function draw(ctx, p, blink, scale) {
+  ctx.save();
+  ctx.scale(scale, scale);
+  ctx.fillStyle = GROUND;
+  ctx.fillRect(0, 0, W, H);
+
+  const gx = Math.round(p.gx), gy = Math.round(p.gy);
+  const ew = Math.max(8, Math.round(p.ew));
+
+  const roundRect = (x, y, w, h, r) => {
+    r = Math.max(0, Math.min(r, Math.min(w, h) / 2));
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.arcTo(x + w, y,     x + w, y + h, r);
+    ctx.arcTo(x + w, y + h, x,     y + h, r);
+    ctx.arcTo(x,     y + h, x,     y,     r);
+    ctx.arcTo(x,     y,     x + w, y,     r);
+    ctx.closePath();
+    ctx.fill();
+  };
+
+  const eye = (hParam, cx) => {
+    const eh = Math.max(4, Math.round(hParam * blink));
+    const r  = Math.min(Math.round(p.rad), Math.min(ew, eh) / 2);
+    const x  = cx - ew / 2 + gx, y = EYES_CY - eh / 2 + gy;
+    ctx.fillStyle = CYAN;
+    roundRect(x, y, ew, eh, r);
+    if (eh > 26) {                       // catch-light
+      const s = Math.max(6, ew / 5);
+      ctx.fillStyle = SHINE;
+      roundRect(x + ew / 6, y + eh / 6, s, s, s / 2);
+    }
+  };
+  eye(p.ehl, FACE_CX - EYE_GAP);
+  eye(p.ehr, FACE_CX + EYE_GAP);
+
+  /* brows: positive angle drops the inner end */
+  const opa = Math.max(0, Math.min(255, Math.round(p.bo))) / 255;
+  if (opa > 0.01) {
+    ctx.strokeStyle = CYAN; ctx.lineWidth = 8; ctx.lineCap = "round";
+    ctx.globalAlpha = opa;
+    const brow = (angDeg, eyeH, cx, innerRight) => {
+      const a = angDeg * Math.PI / 180;
+      const hx = Math.round(BROW_LEN / 2 * Math.cos(a));
+      const hy = Math.round(BROW_LEN / 2 * Math.sin(a));
+      const bx = cx + gx;
+      const by = EYES_CY - Math.round(eyeH * blink) / 2 - 16 + Math.round(p.bdy) + gy;
+      const s = innerRight ? 1 : -1;
+      ctx.beginPath();
+      ctx.moveTo(bx - hx, by - s * hy);
+      ctx.lineTo(bx + hx, by + s * hy);
+      ctx.stroke();
+    };
+    brow(p.bl, p.ehl, FACE_CX - EYE_GAP, true);
+    brow(p.br, p.ehr, FACE_CX + EYE_GAP, false);
+    ctx.globalAlpha = 1;
+  }
+
+  /* mouth: arc when quiet and clearly curved, pill otherwise */
+  const mo = Math.round(p.mo), curve = p.curve;
+  const mgx = Math.round(p.gx * 0.4), mgy = Math.round(p.gy * 0.5);
+  if (mo < 10 && Math.abs(curve) > 0.18) {
+    ctx.strokeStyle = CYAN; ctx.lineWidth = 9; ctx.lineCap = "round";
+    ctx.beginPath();
+    if (curve > 0) {
+      ctx.arc(FACE_CX + mgx, MOUTH_CY - ARC_R + mgy, ARC_R,
+              35 * Math.PI / 180, 145 * Math.PI / 180);
+    } else {
+      ctx.arc(FACE_CX + mgx, MOUTH_CY + ARC_R + mgy, ARC_R,
+              215 * Math.PI / 180, 325 * Math.PI / 180);
+    }
+    ctx.stroke();
+  } else {
+    const mh = Math.max(5, mo);
+    const mw = Math.max(12, Math.round(p.mw));
+    ctx.fillStyle = CYAN;
+    roundRect(FACE_CX - mw / 2 + mgx, MOUTH_CY - mh / 2 + mgy, mw, mh, mh / 2);
+  }
+  ctx.restore();
+}
+
+/* status strip, so the preview matches the real slim top bar */
+function drawBar(ctx, scale, text) {
+  ctx.save();
+  ctx.scale(scale, scale);
+  ctx.fillStyle = DIM;
+  ctx.font = '500 11px "IBM Plex Mono", monospace';
+  ctx.textBaseline = "top";
+  ctx.fillText("wifi", 8, 6);
+  ctx.textAlign = "center";
+  ctx.fillText(text, W / 2, 6);
+  ctx.textAlign = "right";
+  ctx.fillText("batt", W - 8, 6);
+  ctx.restore();
+}
+
+/* ---- live stage ---- */
+const stage = document.getElementById("stage");
+const sctx = stage.getContext("2d");
+const SCALE = 2;
+let state = "idle", emotion = "neutral";
+let cur = clone(P.neutral);
+let blink = 1, blinking = false, blinkStart = 0, nextBlink = 1500;
+let mouthLevel = 0, t0 = performance.now(), frames = 0, lastFps = t0;
+const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+/* a stand-in for the speech envelope the firmware reads off the speaker */
+function fakeVoice(t) {
+  const syl = Math.max(0, Math.sin(t * 7.3)) * Math.max(0, Math.sin(t * 2.1 + 0.6));
+  const phrase = Math.sin(t * 0.42) > -0.35 ? 1 : 0;    // pauses between phrases
+  return Math.min(1, syl * 1.35 * phrase);
+}
+
+function stateOverrides(p, t) {
+  if (state === "listening") {
+    p.ehl *= 1.16; p.ehr *= 1.16; p.ew *= 1.04;
+    p.bdy -= 7; p.bo = Math.max(p.bo, 110);
+    p.mo = Math.min(p.mo, 5); p.gy -= 2;
+  } else if (state === "speaking") {
+    const raw = fakeVoice(t);
+    mouthLevel += (raw - mouthLevel) * (raw > mouthLevel ? 0.60 : 0.18);
+    p.mo = 6 + mouthLevel * 38;
+    p.curve *= 0.35;
+    p.gx += Math.sin(t * 1.7) * 3;
+    p.ehl *= 1 + mouthLevel * 0.06; p.ehr *= 1 + mouthLevel * 0.06;
+  } else if (state === "connecting") {
+    p.ehl *= 0.55; p.ehr *= 0.55;
+    p.gx = Math.sin(t * 2.6) * 16; p.gy = 0;
+    p.mo = 0; p.curve = 0; p.bo = 0;
+  } else if (state === "error") {
+    p.ehl = 14; p.ehr = 14; p.bl = 26; p.br = 26; p.bo = 255;
+    p.curve = -1; p.mo = 0;
+  } else {
+    mouthLevel = 0;
+    p.gx += Math.sin(t * 0.63) * 3.5;
+    p.gy += Math.sin(t * 0.41) * 2;
+  }
+  if (emotion === "thinking" && state !== "speaking") {
+    p.gx = Math.sin(t * 1.1) > 0 ? 15 : -13;
+    p.gy = -8;
+  }
+}
+
+const LABEL = {idle:"Standby", listening:"Listening", speaking:"Speaking",
+               connecting:"Connecting", error:"Error"};
+
+function frame(now) {
+  const t = (now - t0) / 1000;
+  const ms = now - t0;
+
+  const canBlink = emotion !== "surprised" && emotion !== "shocked";
+  if (!blinking && canBlink && ms >= nextBlink) { blinking = true; blinkStart = ms; }
+  if (blinking) {
+    const ph = (ms - blinkStart) / BLINK_MS;
+    if (ph >= 1) {
+      blinking = false; blink = 1;
+      nextBlink = ms + (2200 + Math.random() * 4300);
+    } else {
+      blink = 1 - Math.sin(ph * Math.PI);
+    }
+  }
+
+  const want = clone(P[emotion]);
+  stateOverrides(want, t);
+  for (const k of K) {
+    cur[k] = approach(cur[k], want[k], k === "mo" ? MOUTH_EASE : EASE);
+  }
+
+  draw(sctx, cur, blink, SCALE);
+  drawBar(sctx, SCALE, LABEL[state]);
+
+  frames++;
+  if (now - lastFps > 1000) {
+    document.getElementById("fps").textContent = frames + " fps";
+    frames = 0; lastFps = now;
+  }
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+
+/* ---- controls ---- */
+const statesEl = document.getElementById("states");
+STATES.forEach(([id, label]) => {
+  const b = document.createElement("button");
+  b.textContent = label;
+  b.setAttribute("aria-pressed", String(id === state));
+  b.addEventListener("click", () => {
+    state = id;
+    statesEl.querySelectorAll("button").forEach(x => x.setAttribute("aria-pressed", "false"));
+    b.setAttribute("aria-pressed", "true");
+  });
+  statesEl.appendChild(b);
+});
+
+const sel = document.getElementById("emotion");
+EMOTIONS.forEach(name => {
+  const o = document.createElement("option");
+  o.value = name; o.textContent = name;
+  sel.appendChild(o);
+});
+sel.value = emotion;
+sel.addEventListener("change", () => { emotion = sel.value; });
+
+/* ---- static atlas ---- */
+const atlas = document.getElementById("atlas");
+EMOTIONS.forEach(name => {
+  const fig = document.createElement("figure");
+  fig.className = "pose";
+  fig.style.margin = "0";
+  const c = document.createElement("canvas");
+  c.width = W; c.height = H;
+  const cx = c.getContext("2d");
+  draw(cx, P[name], 1, 1);
+  const cap = document.createElement("span");
+  cap.textContent = name;
+  fig.append(c, cap);
+  atlas.appendChild(fig);
+});
+})();
+</script>

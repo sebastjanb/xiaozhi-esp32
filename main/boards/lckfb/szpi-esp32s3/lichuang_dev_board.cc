@@ -1,15 +1,19 @@
 #include "wifi_board.h"
 #include "codecs/box_audio_codec.h"
 #include "display/lcd_display.h"
+#include "display/robot_face_display.h"
 #include "display/emote_display.h"
 #include "application.h"
 #include "button.h"
 #include "config.h"
+#include "assets/lang_config.h"
 #include "i2c_device.h"
 #include "esp32_camera.h"
 #include "mcp_server.h"
 #include "press_to_talk_mcp_tool.h"
 
+#include <freertos/FreeRTOS.h>
+#include <freertos/task.h>
 #include <esp_log.h>
 #include <esp_lcd_panel_vendor.h>
 #include <driver/i2c_master.h>
@@ -26,6 +30,8 @@ public:
         WriteReg(0x01, 0x03);
         WriteReg(0x03, 0xf8);
     }
+
+    uint8_t ReadInputs() { return ReadReg(0x00); }   // PCA9557 input port
 
     void SetOutputState(uint8_t bit, uint8_t level) {
         uint8_t data = ReadReg(0x01);
@@ -64,6 +70,8 @@ private:
     i2c_master_bus_handle_t i2c_bus_;
     i2c_master_dev_handle_t pca9557_handle_;
     Button boot_button_;
+    Button volume_up_button_;
+    Button volume_down_button_;
     Display* display_;
     Pca9557* pca9557_;
     Esp32Camera* camera_;
@@ -101,6 +109,29 @@ private:
     }
 
     void InitializeButtons() {
+        volume_up_button_.OnClick([this]() {
+            auto codec = GetAudioCodec();
+            auto volume = codec->output_volume() + 10;
+            if (volume > 100) volume = 100;
+            codec->SetOutputVolume(volume);
+            GetDisplay()->ShowNotification(Lang::Strings::VOLUME + std::to_string(volume / 10));
+        });
+        volume_up_button_.OnLongPress([this]() {
+            GetAudioCodec()->SetOutputVolume(100);
+            GetDisplay()->ShowNotification(Lang::Strings::MAX_VOLUME);
+        });
+        volume_down_button_.OnClick([this]() {
+            auto codec = GetAudioCodec();
+            auto volume = codec->output_volume() - 10;
+            if (volume < 0) volume = 0;
+            codec->SetOutputVolume(volume);
+            GetDisplay()->ShowNotification(Lang::Strings::VOLUME + std::to_string(volume / 10));
+        });
+        volume_down_button_.OnLongPress([this]() {
+            GetAudioCodec()->SetOutputVolume(0);
+            GetDisplay()->ShowNotification(Lang::Strings::MUTED);
+        });
+
         boot_button_.OnClick([this]() {
             auto& app = Application::GetInstance();
             // During startup (before connected), pressing BOOT button enters Wi-Fi config mode without reboot
@@ -143,7 +174,11 @@ private:
         esp_lcd_panel_io_spi_config_t io_config = {};
         io_config.cs_gpio_num = GPIO_NUM_NC;
         io_config.dc_gpio_num = GPIO_NUM_39;
-        io_config.spi_mode = 2;
+        // This unit does not latch anything in SPI mode 2: writes are clocked out
+        // and return ESP_OK, but the panel keeps its previous framebuffer. Mode 0
+        // is what the otherwise pin-identical zhengchen variant of this hardware
+        // uses, and it is the mode this panel actually responds to.
+        io_config.spi_mode = 0;
         io_config.pclk_hz = 80 * 1000 * 1000;
         io_config.trans_queue_depth = 10;
         io_config.lcd_cmd_bits = 8;
@@ -170,14 +205,14 @@ private:
 #if CONFIG_USE_EMOTE_MESSAGE_STYLE
         display_ = new emote::EmoteDisplay(panel, panel_io, DISPLAY_WIDTH, DISPLAY_HEIGHT);
 #else
-        display_ = new SpiLcdDisplay(panel_io, panel,
+        display_ = new RobotFaceDisplay(panel_io, panel,
             DISPLAY_WIDTH, DISPLAY_HEIGHT, DISPLAY_OFFSET_X, DISPLAY_OFFSET_Y, DISPLAY_MIRROR_X, DISPLAY_MIRROR_Y, DISPLAY_SWAP_XY);
 #endif
     }
 
     void InitializeTouch()
     {
-        esp_lcd_touch_handle_t tp;
+        esp_lcd_touch_handle_t tp = nullptr;
         esp_lcd_touch_config_t tp_cfg = {
             .x_max = DISPLAY_HEIGHT,
             .y_max = DISPLAY_WIDTH,
@@ -206,9 +241,18 @@ private:
         };
         tp_io_config.scl_speed_hz = 400000;
 
-        esp_lcd_new_panel_io_i2c(i2c_bus_, &tp_io_config, &tp_io_handle);
-        esp_lcd_touch_new_i2c_ft5x06(tp_io_handle, &tp_cfg, &tp);
-        assert(tp);
+        if (esp_lcd_new_panel_io_i2c(i2c_bus_, &tp_io_config, &tp_io_handle) != ESP_OK) {
+            ESP_LOGW(TAG, "Touch panel IO not available, continuing without touch");
+            return;
+        }
+        // Not every unit of this board has the touch panel populated. Treat a
+        // missing controller as "no touch" rather than dereferencing a handle
+        // the driver never filled in.
+        if (esp_lcd_touch_new_i2c_ft5x06(tp_io_handle, &tp_cfg, &tp) != ESP_OK || tp == nullptr) {
+            ESP_LOGW(TAG, "FT5x06 touch controller not found, continuing without touch");
+            esp_lcd_panel_io_del(tp_io_handle);
+            return;
+        }
 
         /* Add touch input (for selected screen) */
         const lvgl_port_touch_cfg_t touch_cfg = {
@@ -274,13 +318,16 @@ private:
     }
 
 public:
-    LichuangDevBoard() : boot_button_(BOOT_BUTTON_GPIO) {
+    LichuangDevBoard()
+        : boot_button_(BOOT_BUTTON_GPIO),
+          volume_up_button_(VOLUME_UP_BUTTON_GPIO),
+          volume_down_button_(VOLUME_DOWN_BUTTON_GPIO) {
         InitializeI2c();
         InitializeSpi();
         InitializeSt7789Display();
         InitializeTouch();
-        InitializeButtons();
         InitializeCamera();
+        InitializeButtons();   // after the camera, so nothing reconfigures the button pins
         InitializeTools();
 
         GetBacklight()->RestoreBrightness();

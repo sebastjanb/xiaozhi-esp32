@@ -22,8 +22,11 @@
 
 #define BUILTIN_LED_GPIO        GPIO_NUM_48
 #define BOOT_BUTTON_GPIO        GPIO_NUM_0
-#define VOLUME_UP_BUTTON_GPIO   GPIO_NUM_NC
-#define VOLUME_DOWN_BUTTON_GPIO GPIO_NUM_NC
+// Declared NC in the stock profile, which is why the volume keys did nothing:
+// no Button objects were ever constructed. These are the pins the pin-identical
+// zhengchen variant of this hardware uses.
+#define VOLUME_UP_BUTTON_GPIO   GPIO_NUM_3
+#define VOLUME_DOWN_BUTTON_GPIO GPIO_NUM_46
 
 #define DISPLAY_WIDTH   320
 #define DISPLAY_HEIGHT  240
@@ -37,26 +40,28 @@
 #define DISPLAY_BACKLIGHT_PIN GPIO_NUM_42
 #define DISPLAY_BACKLIGHT_OUTPUT_INVERT true
 
-/* Camera pins */
+/* Camera pins - zhengchen map for this hardware. The stock lichuang map put
+ * VSYNC on GPIO3 and HREF on GPIO46, colliding with the volume keys, and its
+ * probe failed on every boot. */
 #define CAMERA_PIN_PWDN GPIO_NUM_NC
 #define CAMERA_PIN_RESET GPIO_NUM_NC
-#define CAMERA_PIN_XCLK GPIO_NUM_5
+#define CAMERA_PIN_XCLK GPIO_NUM_17
 #define CAMERA_PIN_SIOD GPIO_NUM_1
 #define CAMERA_PIN_SIOC GPIO_NUM_2
 
-#define CAMERA_PIN_D7 GPIO_NUM_9
-#define CAMERA_PIN_D6 GPIO_NUM_4
-#define CAMERA_PIN_D5 GPIO_NUM_6
-#define CAMERA_PIN_D4 GPIO_NUM_15
-#define CAMERA_PIN_D3 GPIO_NUM_17
-#define CAMERA_PIN_D2 GPIO_NUM_8
-#define CAMERA_PIN_D1 GPIO_NUM_18
-#define CAMERA_PIN_D0 GPIO_NUM_16
-#define CAMERA_PIN_VSYNC GPIO_NUM_3
-#define CAMERA_PIN_HREF GPIO_NUM_46
-#define CAMERA_PIN_PCLK GPIO_NUM_7
+#define CAMERA_PIN_D7 GPIO_NUM_15
+#define CAMERA_PIN_D6 GPIO_NUM_11
+#define CAMERA_PIN_D5 GPIO_NUM_9
+#define CAMERA_PIN_D4 GPIO_NUM_8
+#define CAMERA_PIN_D3 GPIO_NUM_6
+#define CAMERA_PIN_D2 GPIO_NUM_5
+#define CAMERA_PIN_D1 GPIO_NUM_4
+#define CAMERA_PIN_D0 GPIO_NUM_7
+#define CAMERA_PIN_VSYNC GPIO_NUM_21
+#define CAMERA_PIN_HREF GPIO_NUM_18
+#define CAMERA_PIN_PCLK GPIO_NUM_16
 
-#define XCLK_FREQ_HZ 20000000
+#define XCLK_FREQ_HZ 24000000
 
 
 #endif // _BOARD_CONFIG_H_
