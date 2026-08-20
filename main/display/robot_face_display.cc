@@ -145,7 +145,12 @@ RobotFaceDisplay::RobotFaceDisplay(esp_lcd_panel_io_handle_t panel_io,
     mouth_cy_ = cy + bias + gap / 2;
     eye_gap_ = static_cast<int>(width_ * 0.21f * kFaceScale);
     brow_len_ = static_cast<int>(width_ * 0.19f * kFaceScale);
-    mouth_arc_r_ = static_cast<int>(width_ * 0.20f * kFaceScale);
+    // The mouth lives entirely below the eyes: its cutter is painted in the
+    // background colour, so it must never reach up into them.
+    const int eye_bottom = eyes_cy_ + static_cast<int>(76 * kFaceScale) / 2;
+    mouth_bottom_ = height_ - 12;
+    mouth_h_ = std::min(static_cast<int>(width_ * 0.22f * kFaceScale),
+                        mouth_bottom_ - eye_bottom - 4);
 
     // Near-white outer, blue iris inside, and a light smile - the friendly
     // "glowing panel" look rather than a saturated cyan one.
@@ -248,26 +253,12 @@ void RobotFaceDisplay::BuildFace() {
     mk_brow(&brow_l_);
     mk_brow(&brow_r_);
 
-    // Mouth while talking: a pill whose height follows the speech envelope.
-    mouth_pill_ = lv_obj_create(face_root_);
-    lv_obj_set_style_bg_color(mouth_pill_, face_color_, 0);
-    lv_obj_set_style_bg_opa(mouth_pill_, LV_OPA_COVER, 0);
-    lv_obj_set_style_border_width(mouth_pill_, 0, 0);
-    lv_obj_set_style_pad_all(mouth_pill_, 0, 0);
-    lv_obj_remove_flag(mouth_pill_, LV_OBJ_FLAG_SCROLLABLE);
-    lv_obj_set_scrollbar_mode(mouth_pill_, LV_SCROLLBAR_MODE_OFF);
-
-    // Mouth while quiet: an arc, curving up to smile or down to frown.
-    mouth_arc_ = lv_arc_create(face_root_);
-    lv_obj_remove_style(mouth_arc_, NULL, LV_PART_KNOB);
-    lv_obj_remove_flag(mouth_arc_, LV_OBJ_FLAG_CLICKABLE);
-    lv_obj_set_style_bg_opa(mouth_arc_, LV_OPA_TRANSP, 0);
-    lv_obj_set_style_arc_width(mouth_arc_, 0, LV_PART_INDICATOR);
-    lv_obj_set_style_arc_opa(mouth_arc_, LV_OPA_TRANSP, LV_PART_INDICATOR);
-    lv_obj_set_style_arc_color(mouth_arc_, face_color_, LV_PART_MAIN);
-    lv_obj_set_style_arc_width(mouth_arc_, std::max(10, static_cast<int>(width_ * 0.070f * kFaceScale)), LV_PART_MAIN);
-    lv_obj_set_style_arc_rounded(mouth_arc_, true, LV_PART_MAIN);
-    lv_obj_add_flag(mouth_arc_, LV_OBJ_FLAG_HIDDEN);
+    // The mouth is one filled ellipse with a second, background-coloured ellipse
+    // cutting into it. The overlap of two curves gives a crescent that is thick
+    // in the middle and tapers to points, like a real mouth, and sliding the
+    // cutter opens and closes it continuously instead of swapping shapes.
+    mouth_body_ = mk_circle(face_root_, face_color_);
+    mouth_mask_ = mk_circle(face_root_, lv_color_hex(0x060A10));
 }
 
 void RobotFaceDisplay::BuildStatusBar() {
@@ -430,7 +421,7 @@ void RobotFaceDisplay::DumpSnapshot() {
     report("face_root", face_root_);
     report("eye_l", eye_l_);
     report("eye_r", eye_r_);
-    report("mouth_pill", mouth_pill_);
+    report("mouth_body", mouth_body_);
     report("top_bar", top_bar_);
     ESP_LOGI(TAG, "FACE frames rendered=%u  screen children=%d", (unsigned)frame_,
              (int)lv_obj_get_child_count(lv_screen_active()));
@@ -755,33 +746,26 @@ void RobotFaceDisplay::RenderFace() {
     place_brow(brow_r_, brow_pts_r_, current_.brow_angle_r, current_.eye_h_r,
                face_cx_ + eye_gap_, false);
 
-    // Mouth: pill while open or flat, arc while clearly smiling or frowning.
-    const int mo = static_cast<int>(std::lround(current_.mouth_open));
+    // Mouth. The visible crescent is whatever the cutter leaves uncovered, so its
+    // height is the aperture: a thin curve at rest, a wide opening while talking.
     const float curve = current_.mouth_curve;
     const int mgx = static_cast<int>(std::lround(current_.gaze_x * 0.4f));
-    const int mgy = static_cast<int>(std::lround(current_.gaze_y * 0.5f));
+    const int mw = std::max(16, static_cast<int>(std::lround(current_.mouth_w)));
+    const int aperture = std::clamp(
+        static_cast<int>(std::lround(12.0f + std::fabs(curve) * 30.0f + current_.mouth_open)),
+        9, mouth_h_ - 5);
 
-    if (mo < 10 && std::fabs(curve) > 0.18f) {
-        const int R = mouth_arc_r_;
-        lv_obj_set_size(mouth_arc_, 2 * R, 2 * R);
-        if (curve > 0.0f) {
-            // Bottom of the circle sits on the mouth line -> a smile.
-            lv_arc_set_bg_angles(mouth_arc_, 50, 130);
-            lv_obj_set_pos(mouth_arc_, face_cx_ - R + mgx, mouth_cy_ - 2 * R + mgy);
-        } else {
-            // Top of the circle sits on the mouth line -> a frown.
-            lv_arc_set_bg_angles(mouth_arc_, 215, 325);
-            lv_obj_set_pos(mouth_arc_, face_cx_ - R + mgx, mouth_cy_ + mgy);
-        }
-        lv_obj_remove_flag(mouth_arc_, LV_OBJ_FLAG_HIDDEN);
-        lv_obj_add_flag(mouth_pill_, LV_OBJ_FLAG_HIDDEN);
+    const int bx = face_cx_ - mw / 2 + mgx;
+    lv_obj_set_size(mouth_body_, mw, mouth_h_);
+    lv_obj_set_pos(mouth_body_, bx, mouth_bottom_ - mouth_h_);
+    lv_obj_set_size(mouth_mask_, mw + 4, mouth_h_);
+
+    if (curve >= 0.0f) {
+        // Cutter sits above: the uncovered strip is the bottom of the ellipse,
+        // which curves upward at the ends -> a smile.
+        lv_obj_set_pos(mouth_mask_, bx - 2, mouth_bottom_ - mouth_h_ - aperture);
     } else {
-        const int mh = std::max(5, mo);
-        const int mw = std::max(12, static_cast<int>(std::lround(current_.mouth_w)));
-        lv_obj_set_size(mouth_pill_, mw, mh);
-        lv_obj_set_style_radius(mouth_pill_, mh / 2, 0);
-        lv_obj_set_pos(mouth_pill_, face_cx_ - mw / 2 + mgx, mouth_cy_ - mh / 2 + mgy);
-        lv_obj_remove_flag(mouth_pill_, LV_OBJ_FLAG_HIDDEN);
-        lv_obj_add_flag(mouth_arc_, LV_OBJ_FLAG_HIDDEN);
+        // Cutter below: the top edge shows instead -> a frown.
+        lv_obj_set_pos(mouth_mask_, bx - 2, mouth_bottom_ - mouth_h_ + aperture);
     }
 }
