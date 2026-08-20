@@ -70,7 +70,7 @@ inline float Approach(float current, float target, float k) {
 
 const RobotFaceDisplay::FaceParams& RobotFaceDisplay::ParamsForEmotion(const std::string& emotion) {
     //                     eyeHL eyeHR eyeW  rad  gazeX gazeY browL browR browDy browOpa mouthW mouthOpen curve
-    static const FaceParams kNeutral    = { 68, 68, 66, 22,   0,   0,    0,    0,    0,     0, 84,  0,  0.45f};
+    static const FaceParams kNeutral    = { 68, 68, 66, 22,   0,   0,    0,    0,    0,     0, 70,  0,  0.45f};
     static const std::map<std::string, FaceParams> kTable = {
         {"neutral",      kNeutral},
         {"happy",        { 58, 58, 70, 26,   0,   0,   -8,   -8,   -4,   140, 88,  6,  1.00f}},
@@ -149,7 +149,7 @@ RobotFaceDisplay::RobotFaceDisplay(esp_lcd_panel_io_handle_t panel_io,
     // background colour, so it must never reach up into them.
     const int eye_bottom = eyes_cy_ + static_cast<int>(76 * kFaceScale) / 2;
     mouth_bottom_ = height_ - 12;
-    mouth_h_ = std::min(static_cast<int>(width_ * 0.22f * kFaceScale),
+    mouth_h_ = std::min(static_cast<int>(width_ * 0.10f * kFaceScale),
                         mouth_bottom_ - eye_bottom - 4);
 
     // Near-white outer, blue iris inside, and a light smile - the friendly
@@ -752,8 +752,8 @@ void RobotFaceDisplay::RenderFace() {
     const int mgx = static_cast<int>(std::lround(current_.gaze_x * 0.4f));
     const int mw = std::max(16, static_cast<int>(std::lround(current_.mouth_w)));
     const int aperture = std::clamp(
-        static_cast<int>(std::lround(12.0f + std::fabs(curve) * 30.0f + current_.mouth_open)),
-        9, mouth_h_ - 5);
+        static_cast<int>(std::lround(8.0f + std::fabs(curve) * 24.0f + current_.mouth_open)),
+        6, mouth_h_ - 5);
 
     const int bx = face_cx_ - mw / 2 + mgx;
     lv_obj_set_size(mouth_body_, mw, mouth_h_);
