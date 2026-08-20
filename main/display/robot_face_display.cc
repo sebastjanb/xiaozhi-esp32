@@ -70,7 +70,7 @@ inline float Approach(float current, float target, float k) {
 
 const RobotFaceDisplay::FaceParams& RobotFaceDisplay::ParamsForEmotion(const std::string& emotion) {
     //                     eyeHL eyeHR eyeW  rad  gazeX gazeY browL browR browDy browOpa mouthW mouthOpen curve
-    static const FaceParams kNeutral    = { 76, 76, 66, 22,   0,   0,    0,    0,    0,     0, 84,  0,  0.00f};
+    static const FaceParams kNeutral    = { 68, 68, 66, 22,   0,   0,    0,    0,    0,     0, 84,  0,  0.45f};
     static const std::map<std::string, FaceParams> kTable = {
         {"neutral",      kNeutral},
         {"happy",        { 58, 58, 70, 26,   0,   0,   -8,   -8,   -4,   140, 88,  6,  1.00f}},
@@ -145,10 +145,13 @@ RobotFaceDisplay::RobotFaceDisplay(esp_lcd_panel_io_handle_t panel_io,
     mouth_cy_ = cy + bias + gap / 2;
     eye_gap_ = static_cast<int>(width_ * 0.21f * kFaceScale);
     brow_len_ = static_cast<int>(width_ * 0.19f * kFaceScale);
-    mouth_arc_r_ = static_cast<int>(width_ * 0.16f * kFaceScale);
+    mouth_arc_r_ = static_cast<int>(width_ * 0.20f * kFaceScale);
 
-    face_color_ = lv_color_hex(0x22D3EE);   // cyan, reads well on the ST7789
-    shine_color_ = lv_color_hex(0xE6FBFF);
+    // Near-white outer, blue iris inside, and a light smile - the friendly
+    // "glowing panel" look rather than a saturated cyan one.
+    face_color_ = lv_color_hex(0xE9F7FF);   // eye ring and smile, barely-blue white
+    iris_color_ = lv_color_hex(0x17306E);   // iris, deep blue
+    shine_color_ = lv_color_hex(0xFFFFFF);  // catch-light
 
     current_ = ScaledParams("neutral");
     target_ = current_;
@@ -214,26 +217,24 @@ void RobotFaceDisplay::SetupUI() {
 }
 
 void RobotFaceDisplay::BuildFace() {
-    auto mk_eye = [&](lv_obj_t** eye, lv_obj_t** shine) {
-        *eye = lv_obj_create(face_root_);
-        lv_obj_set_style_bg_color(*eye, face_color_, 0);
-        lv_obj_set_style_bg_opa(*eye, LV_OPA_COVER, 0);
-        lv_obj_set_style_border_width(*eye, 0, 0);
-        lv_obj_set_style_pad_all(*eye, 0, 0);
-        lv_obj_remove_flag(*eye, LV_OBJ_FLAG_SCROLLABLE);
-        lv_obj_set_scrollbar_mode(*eye, LV_SCROLLBAR_MODE_OFF);
-
-        // Cartoon catch-light in the upper-left of each eye.
-        *shine = lv_obj_create(*eye);
-        lv_obj_set_style_bg_color(*shine, shine_color_, 0);
-        lv_obj_set_style_bg_opa(*shine, LV_OPA_COVER, 0);
-        lv_obj_set_style_border_width(*shine, 0, 0);
-        lv_obj_set_style_pad_all(*shine, 0, 0);
-        lv_obj_remove_flag(*shine, LV_OBJ_FLAG_SCROLLABLE);
-        lv_obj_set_scrollbar_mode(*shine, LV_SCROLLBAR_MODE_OFF);
+    auto mk_circle = [&](lv_obj_t* parent, lv_color_t colour) {
+        lv_obj_t* o = lv_obj_create(parent);
+        lv_obj_set_style_bg_color(o, colour, 0);
+        lv_obj_set_style_bg_opa(o, LV_OPA_COVER, 0);
+        lv_obj_set_style_border_width(o, 0, 0);
+        lv_obj_set_style_pad_all(o, 0, 0);
+        lv_obj_set_style_radius(o, LV_RADIUS_CIRCLE, 0);
+        lv_obj_remove_flag(o, LV_OBJ_FLAG_SCROLLABLE);
+        lv_obj_set_scrollbar_mode(o, LV_SCROLLBAR_MODE_OFF);
+        return o;
     };
-    mk_eye(&eye_l_, &shine_l_);
-    mk_eye(&eye_r_, &shine_r_);
+    auto mk_eye = [&](lv_obj_t** eye, lv_obj_t** iris, lv_obj_t** shine) {
+        *eye = mk_circle(face_root_, face_color_);       // bright ring
+        *iris = mk_circle(*eye, iris_color_);            // dark iris, clipped by the eye
+        *shine = mk_circle(*iris, shine_color_);         // catch-light on the iris
+    };
+    mk_eye(&eye_l_, &iris_l_, &shine_l_);
+    mk_eye(&eye_r_, &iris_r_, &shine_r_);
 
     auto mk_brow = [&](lv_obj_t** brow) {
         *brow = lv_line_create(face_root_);
@@ -264,7 +265,7 @@ void RobotFaceDisplay::BuildFace() {
     lv_obj_set_style_arc_width(mouth_arc_, 0, LV_PART_INDICATOR);
     lv_obj_set_style_arc_opa(mouth_arc_, LV_OPA_TRANSP, LV_PART_INDICATOR);
     lv_obj_set_style_arc_color(mouth_arc_, face_color_, LV_PART_MAIN);
-    lv_obj_set_style_arc_width(mouth_arc_, 9, LV_PART_MAIN);
+    lv_obj_set_style_arc_width(mouth_arc_, std::max(10, static_cast<int>(width_ * 0.070f * kFaceScale)), LV_PART_MAIN);
     lv_obj_set_style_arc_rounded(mouth_arc_, true, LV_PART_MAIN);
     lv_obj_add_flag(mouth_arc_, LV_OBJ_FLAG_HIDDEN);
 }
@@ -695,27 +696,34 @@ void RobotFaceDisplay::RenderFace() {
     const int gy = static_cast<int>(std::lround(current_.gaze_y));
     const int ew = std::max(8, static_cast<int>(std::lround(current_.eye_w)));
 
-    auto place_eye = [&](lv_obj_t* eye, lv_obj_t* shine, float h_param, int cx) {
+    auto place_eye = [&](lv_obj_t* eye, lv_obj_t* iris, lv_obj_t* shine, float h_param, int cx) {
         const int eh = std::max(4, static_cast<int>(std::lround(h_param * blink_)));
-        const int r = std::min(static_cast<int>(std::lround(current_.eye_radius)),
-                               std::min(ew, eh) / 2);
+        // The eye itself holds still; the iris does the looking, which reads far
+        // better than sliding the whole eye around.
         lv_obj_set_size(eye, ew, eh);
-        lv_obj_set_style_radius(eye, r, 0);
-        lv_obj_set_pos(eye, cx - ew / 2 + gx, eyes_cy_ - eh / 2 + gy);
+        lv_obj_set_pos(eye, cx - ew / 2, eyes_cy_ - eh / 2);
 
-        // The catch-light only makes sense while the eye is actually open.
-        if (eh > 26) {
-            const int s = std::max(6, ew / 5);
-            lv_obj_set_size(shine, s, s);
-            lv_obj_set_style_radius(shine, s / 2, 0);
-            lv_obj_set_pos(shine, ew / 6, eh / 6);
+        const int ir = std::max(4, static_cast<int>(ew * 0.52f));
+        lv_obj_set_size(iris, ir, ir);
+        // Keep the iris inside the ring so it never clips oddly at the edge.
+        const int slack_x = (ew - ir) / 2;
+        const int slack_y = (eh - ir) / 2;
+        const int ix = std::clamp(gx, -slack_x, slack_x);
+        const int iy = std::clamp(gy, -slack_y, slack_y);
+        lv_obj_set_pos(iris, (ew - ir) / 2 + ix, (eh - ir) / 2 + iy);
+
+        if (eh > ir / 2) {
+            const int sd = std::max(4, ir / 4);
+            lv_obj_set_size(shine, sd, sd);
+            lv_obj_set_pos(shine, ir / 5, ir / 5);
             lv_obj_remove_flag(shine, LV_OBJ_FLAG_HIDDEN);
+            lv_obj_remove_flag(iris, LV_OBJ_FLAG_HIDDEN);
         } else {
-            lv_obj_add_flag(shine, LV_OBJ_FLAG_HIDDEN);
+            lv_obj_add_flag(iris, LV_OBJ_FLAG_HIDDEN);   // mid-blink: just the ring
         }
     };
-    place_eye(eye_l_, shine_l_, current_.eye_h_l, face_cx_ - eye_gap_);
-    place_eye(eye_r_, shine_r_, current_.eye_h_r, face_cx_ + eye_gap_);
+    place_eye(eye_l_, iris_l_, shine_l_, current_.eye_h_l, face_cx_ - eye_gap_);
+    place_eye(eye_r_, iris_r_, shine_r_, current_.eye_h_r, face_cx_ + eye_gap_);
 
     // Brows. Positive angle drops the inner end, which is what reads as angry.
     const lv_opa_t brow_opa =
@@ -758,7 +766,7 @@ void RobotFaceDisplay::RenderFace() {
         lv_obj_set_size(mouth_arc_, 2 * R, 2 * R);
         if (curve > 0.0f) {
             // Bottom of the circle sits on the mouth line -> a smile.
-            lv_arc_set_bg_angles(mouth_arc_, 35, 145);
+            lv_arc_set_bg_angles(mouth_arc_, 50, 130);
             lv_obj_set_pos(mouth_arc_, face_cx_ - R + mgx, mouth_cy_ - 2 * R + mgy);
         } else {
             // Top of the circle sits on the mouth line -> a frown.

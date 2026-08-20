@@ -81,6 +81,8 @@ private:
     lv_obj_t* face_root_ = nullptr;
     lv_obj_t* eye_l_ = nullptr;
     lv_obj_t* eye_r_ = nullptr;
+    lv_obj_t* iris_l_ = nullptr;
+    lv_obj_t* iris_r_ = nullptr;
     lv_obj_t* shine_l_ = nullptr;
     lv_obj_t* shine_r_ = nullptr;
     lv_obj_t* brow_l_ = nullptr;
@@ -110,6 +112,7 @@ private:
     uint32_t frame_ = 0;
 
     lv_color_t face_color_{};
+    lv_color_t iris_color_{};
     lv_color_t shine_color_{};
 };
 
