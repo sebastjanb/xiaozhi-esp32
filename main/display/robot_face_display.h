@@ -58,6 +58,7 @@ private:
     };
 
     static const FaceParams& ParamsForEmotion(const std::string& emotion);
+    static FaceParams ScaledParams(const std::string& emotion);
 
     void BuildStatusBar();
     void BuildFace();

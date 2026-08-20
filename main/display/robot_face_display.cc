@@ -47,6 +47,10 @@ constexpr float kBlinkMaxS = 6.5f;
 
 // Eased toward the target at this fraction per frame. Separate rate for the
 // mouth so speech tracks the audio envelope instead of lagging behind it.
+// How large the face is drawn relative to the reference layout. Everything that
+// has a size in pixels is multiplied by this, so the proportions hold.
+constexpr float kFaceScale = 1.25f;
+
 constexpr float kEase = 0.28f;
 constexpr float kMouthEase = 0.55f;
 
@@ -94,6 +98,23 @@ const RobotFaceDisplay::FaceParams& RobotFaceDisplay::ParamsForEmotion(const std
 
 // ---------------------------------------------------------------------------
 
+// The expression table is authored at 1.0; every pixel-valued field is scaled
+// here so a single constant resizes the whole face. Angles and opacities are
+// dimensionless and must not be touched.
+RobotFaceDisplay::FaceParams RobotFaceDisplay::ScaledParams(const std::string& emotion) {
+    FaceParams p = ParamsForEmotion(emotion);
+    p.eye_h_l *= kFaceScale;
+    p.eye_h_r *= kFaceScale;
+    p.eye_w *= kFaceScale;
+    p.eye_radius *= kFaceScale;
+    p.gaze_x *= kFaceScale;
+    p.gaze_y *= kFaceScale;
+    p.brow_dy *= kFaceScale;
+    p.mouth_w *= kFaceScale;
+    p.mouth_open *= kFaceScale;
+    return p;
+}
+
 RobotFaceDisplay::RobotFaceDisplay(esp_lcd_panel_io_handle_t panel_io,
                                    esp_lcd_panel_handle_t panel, int width, int height,
                                    int offset_x, int offset_y, bool mirror_x, bool mirror_y,
@@ -115,19 +136,19 @@ RobotFaceDisplay::RobotFaceDisplay(esp_lcd_panel_io_handle_t panel_io,
     constexpr int kAboveEyes = 58;
     constexpr int kBelowMouth = 22;
     const int bias = (kAboveEyes - kBelowMouth) / 2;
-    const int gap = static_cast<int>(avail * 0.32f);  // eye centre -> mouth centre
+    const int gap = static_cast<int>(avail * 0.32f * kFaceScale);  // eye centre -> mouth centre
 
     face_cx_ = width_ / 2;
     eyes_cy_ = cy + bias - gap / 2;
     mouth_cy_ = cy + bias + gap / 2;
-    eye_gap_ = static_cast<int>(width_ * 0.21f);
-    brow_len_ = static_cast<int>(width_ * 0.19f);
-    mouth_arc_r_ = static_cast<int>(width_ * 0.16f);
+    eye_gap_ = static_cast<int>(width_ * 0.21f * kFaceScale);
+    brow_len_ = static_cast<int>(width_ * 0.19f * kFaceScale);
+    mouth_arc_r_ = static_cast<int>(width_ * 0.16f * kFaceScale);
 
     face_color_ = lv_color_hex(0x22D3EE);   // cyan, reads well on the ST7789
     shine_color_ = lv_color_hex(0xE6FBFF);
 
-    current_ = ParamsForEmotion("neutral");
+    current_ = ScaledParams("neutral");
     target_ = current_;
     next_blink_us_ = esp_timer_get_time() + 1500000;
 }
@@ -526,7 +547,7 @@ void RobotFaceDisplay::SetEmotion(const char* emotion) {
     }
     DisplayLockGuard lock(this);
     emotion_ = emotion;
-    target_ = ParamsForEmotion(emotion_);
+    target_ = ScaledParams(emotion_);
 }
 
 void RobotFaceDisplay::DispEventCb(lv_event_t* e) {
