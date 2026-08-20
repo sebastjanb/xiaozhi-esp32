@@ -49,7 +49,9 @@ constexpr float kBlinkMaxS = 6.5f;
 // mouth so speech tracks the audio envelope instead of lagging behind it.
 // How large the face is drawn relative to the reference layout. Everything that
 // has a size in pixels is multiplied by this, so the proportions hold.
-constexpr float kFaceScale = 1.25f;
+// On a 320x240 panel 1.40 is the practical ceiling: at 1.45 the brows slide up
+// behind the status bar. Raising the top-bar clearance would allow more.
+constexpr float kFaceScale = 1.40f;
 
 constexpr float kEase = 0.28f;
 constexpr float kMouthEase = 0.55f;
